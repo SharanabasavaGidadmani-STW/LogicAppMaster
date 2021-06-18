@@ -1,0 +1,637 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "logicAppName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "metadata": {
+        "description": "Name of the Logic App."
+      }
+    },
+    "logicAppLocation": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "allowedValues": [
+        "[resourceGroup().location]",
+        "eastasia",
+        "southeastasia",
+        "centralus",
+        "eastus",
+        "eastus2",
+        "westus",
+        "northcentralus",
+        "southcentralus",
+        "northeurope",
+        "westeurope",
+        "japanwest",
+        "japaneast",
+        "brazilsouth",
+        "australiaeast",
+        "australiasoutheast",
+        "southindia",
+        "centralindia",
+        "westindia",
+        "canadacentral",
+        "canadaeast",
+        "uksouth",
+        "ukwest",
+        "westcentralus",
+        "westus2",
+        "koreacentral",
+        "koreasouth",
+        "francecentral",
+        "francesouth",
+        "uaecentral",
+        "uaenorth",
+        "southafricanorth",
+        "southafricawest",
+        "switzerlandnorth",
+        "switzerlandwest",
+        "germanynorth",
+        "germanywestcentral",
+        "norwayeast",
+        "brazilsoutheast"
+      ],
+      "metadata": {
+        "description": "Location of the Logic App."
+      }
+    },
+    "sql_1_Connection_Name": {
+      "type": "string",
+      "defaultValue": "sql-1"
+    },
+    "sql_1_Connection_DisplayName": {
+      "type": "string",
+      "defaultValue": "Get Requested Jobs"
+    },
+    "sql_1_server": {
+      "type": "string",
+      "metadata": {
+        "description": "SQL server name"
+      },
+      "defaultValue": "st-proactivemetering-prod-neu-sqlserver.database.windows.net"
+    },
+    "sql_1_database": {
+      "type": "string",
+      "metadata": {
+        "description": "SQL database name"
+      },
+      "defaultValue": "st-proactivemetering-prod-sqldb"
+    },
+    "sql_1_username": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Username credential"
+      }
+    },
+    "sql_1_password": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Password credential"
+      }
+    },
+    "sql_1_encryptConnection": {
+      "type": "bool",
+      "metadata": {
+        "description": "Encrypt Connection"
+      },
+      "defaultValue": true
+    },
+    "sql_1_privacySetting": {
+      "type": "string",
+      "metadata": {
+        "description": "Privacy Setting"
+      },
+      "defaultValue": "None",
+      "allowedValues": [
+        "None",
+        "Private",
+        "Organizational",
+        "Public"
+      ]
+    },
+    "sql_1_sqlConnectionString": {
+      "type": "securestring",
+      "metadata": {
+        "description": "SQL Connection String"
+      }
+    },
+    "azureblob_1_Connection_Name": {
+      "type": "string",
+      "defaultValue": "azureblob"
+    },
+    "azureblob_1_Connection_DisplayName": {
+      "type": "string",
+      "defaultValue": "stproactivemprodstor1_Prefile"
+    },
+    "azureblob_1_accountName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the storage account the connector should use."
+      },
+      "defaultValue": "stproactivemprodstor1"
+    },
+    "azureblob_1_accessKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Specify a valid primary/secondary storage account access key."
+      }
+    },
+    "azureblob_1_authType": {
+      "type": "string",
+      "metadata": {
+        "description": "Authentication type to connect to your database"
+      },
+      "allowedValues": [
+        "basic",
+        "anonymous"
+      ]
+    },
+    "azureblob_1_privacySetting": {
+      "type": "string",
+      "metadata": {
+        "description": "Privacy Setting"
+      },
+      "allowedValues": [
+        "None",
+        "Private",
+        "Organizational",
+        "Public"
+      ]
+    }
+  },
+  "variables": {},
+  "resources": [
+    {
+      "name": "[parameters('logicAppName')]",
+      "type": "Microsoft.Logic/workflows",
+      "location": "[parameters('logicAppLocation')]",
+      "tags": {
+        "displayName": "LogicApp"
+      },
+      "apiVersion": "2016-06-01",
+      "properties": {
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "actions": {
+            "Create_CSV_for_Preview_File": {
+              "type": "Table",
+              "inputs": {
+                "from": "@body('Get_Requested_Jobs')?['resultsets']?['Table1']",
+                "format": "CSV"
+              },
+              "runAfter": {
+                "Get_Requested_Jobs": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Create_blob": {
+              "type": "ApiConnection",
+              "inputs": {
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['azureblob']['connectionId']"
+                  }
+                },
+                "method": "post",
+                "body": "@body('Create_CSV_for_Preview_File')",
+                "path": "/datasets/default/files",
+                "queries": {
+                  "folderPath": "/st-proactive-preview-file",
+                  "name": "@triggerBody()?['name']",
+                  "queryParametersSingleEncoded": true
+                }
+              },
+              "runAfter": {
+                "Create_CSV_for_Preview_File": [
+                  "Succeeded"
+                ]
+              },
+              "runtimeConfiguration": {
+                "contentTransfer": {
+                  "transferMode": "Chunked"
+                }
+              }
+            },
+            "Get_Requested_Jobs": {
+              "type": "ApiConnection",
+              "inputs": {
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['sql']['connectionId']"
+                  }
+                },
+                "method": "post",
+                "body": {
+                  "query": "select I.[FunctionalLocation], I.[DMAID001] as DMA,I.[XYCoordinate] as \nGPS,I.[PostCode],I.Address as AddressName,I.[Street],I.HouseNumber ,I.[SchemeCity],I.[SchemeDistrict] from PREFILE_PROPERTYLIST_API_Consume as I WHERE I.PreFileId='@{triggerBody()?['PrefileID']}'"
+                },
+                "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('default'))},@{encodeURIComponent(encodeURIComponent('default'))}/query/sql"
+              },
+              "runAfter": {
+                "filecontent_var": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Response": {
+              "type": "Response",
+              "kind": "Http",
+              "inputs": {
+                "statusCode": 500,
+                "body": "Failed."
+              },
+              "runAfter": {
+                "Create_blob": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Response_Success": {
+              "type": "Response",
+              "kind": "Http",
+              "inputs": {
+                "statusCode": 200,
+                "body": "Succeeded : Generated CSV File uploaded to Blob."
+              },
+              "runAfter": {
+                "Create_blob": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "filecontent_var": {
+              "type": "InitializeVariable",
+              "inputs": {
+                "variables": [
+                  {
+                    "name": "filecontent",
+                    "type": "array",
+                    "value": [
+                      {
+                        "AddressName": " ",
+                        "DMA": "03107",
+                        "FunctionalLocation": "5394426",
+                        "GPS": "372247;292727",
+                        "HouseNumber": " ",
+                        "PostCode": "WV15 5AU",
+                        "SchemeCity": "BRIDGNORTH",
+                        "SchemeDistrict": " ",
+                        "Street": "HORSEGROVE HILL"
+                      },
+                      {
+                        "AddressName": " ",
+                        "DMA": "04630",
+                        "FunctionalLocation": "2450886",
+                        "GPS": "414993;289044",
+                        "HouseNumber": " ",
+                        "PostCode": "B34 6SS",
+                        "SchemeCity": "BIRMINGHAM",
+                        "SchemeDistrict": " ",
+                        "Street": "PENCROFT ROAD"
+                      },
+                      {
+                        "AddressName": "MR DANIEL BERRY",
+                        "DMA": "03107",
+                        "FunctionalLocation": "5529209",
+                        "GPS": "372097;292939",
+                        "HouseNumber": "17A",
+                        "PostCode": "WV15 6AG",
+                        "SchemeCity": "BRIDGNORTH",
+                        "SchemeDistrict": " ",
+                        "Street": "ST  JOHNS STREET"
+                      },
+                      {
+                        "AddressName": " ",
+                        "DMA": "03107",
+                        "FunctionalLocation": "5420214",
+                        "GPS": "372195;292710",
+                        "HouseNumber": " ",
+                        "PostCode": "WV15 5AX",
+                        "SchemeCity": "BRIDGNORTH",
+                        "SchemeDistrict": " ",
+                        "Street": "BERNARDS HILL"
+                      },
+                      {
+                        "AddressName": " ",
+                        "DMA": "04630",
+                        "FunctionalLocation": "5078800",
+                        "GPS": "415117;288198",
+                        "HouseNumber": "0000000014",
+                        "PostCode": "B34 7QX",
+                        "SchemeCity": "BIRMINGHAM",
+                        "SchemeDistrict": " ",
+                        "Street": "TANGLEWOOD CLOSE"
+                      },
+                      {
+                        "AddressName": " ",
+                        "DMA": "03107",
+                        "FunctionalLocation": "2799819",
+                        "GPS": "372388;292606",
+                        "HouseNumber": "0000000019",
+                        "PostCode": "WV15 5AY",
+                        "SchemeCity": "BRIDGNORTH",
+                        "SchemeDistrict": " ",
+                        "Street": "STOURBRIDGE ROAD"
+                      },
+                      {
+                        "AddressName": " ",
+                        "DMA": "03107",
+                        "FunctionalLocation": "5707584",
+                        "GPS": "371731;293233",
+                        "HouseNumber": " ",
+                        "PostCode": "WV16 4BN",
+                        "SchemeCity": "BRIDGNORTH",
+                        "SchemeDistrict": " ",
+                        "Street": "ST  LEONARDS STEPS"
+                      },
+                      {
+                        "AddressName": " ",
+                        "DMA": "04630",
+                        "FunctionalLocation": "3023374",
+                        "GPS": "415147;288121",
+                        "HouseNumber": "0000000015",
+                        "PostCode": "B34 7QZ",
+                        "SchemeCity": "BIRMINGHAM",
+                        "SchemeDistrict": " ",
+                        "Street": "BRAMBLEWOODS"
+                      },
+                      {
+                        "AddressName": " ",
+                        "DMA": "03107",
+                        "FunctionalLocation": "3813493",
+                        "GPS": "372040;292737",
+                        "HouseNumber": "0000000018",
+                        "PostCode": "WV15 6BE",
+                        "SchemeCity": "BRIDGNORTH",
+                        "SchemeDistrict": " ",
+                        "Street": "PALE MEADOW ROAD"
+                      },
+                      {
+                        "AddressName": " ",
+                        "DMA": "04630",
+                        "FunctionalLocation": "3718779",
+                        "GPS": "415226;288118",
+                        "HouseNumber": "0000000032",
+                        "PostCode": "B34 7QY",
+                        "SchemeCity": "BIRMINGHAM",
+                        "SchemeDistrict": " ",
+                        "Street": "PACKINGTON AVENUE"
+                      },
+                      {
+                        "AddressName": " ",
+                        "DMA": "04630",
+                        "FunctionalLocation": "5211035",
+                        "GPS": "415128;288120",
+                        "HouseNumber": "0000000021",
+                        "PostCode": "B34 7QZ",
+                        "SchemeCity": "BIRMINGHAM",
+                        "SchemeDistrict": " ",
+                        "Street": "BRAMBLEWOODS"
+                      },
+                      {
+                        "AddressName": " ",
+                        "DMA": "03107",
+                        "FunctionalLocation": "5042644",
+                        "GPS": "372206;292611",
+                        "HouseNumber": "0000000005",
+                        "PostCode": "WV15 5AY",
+                        "SchemeCity": "BRIDGNORTH",
+                        "SchemeDistrict": " ",
+                        "Street": "STOURBRIDGE ROAD"
+                      },
+                      {
+                        "AddressName": " ",
+                        "DMA": "03005",
+                        "FunctionalLocation": "4468651",
+                        "GPS": "385432;304065",
+                        "HouseNumber": " ",
+                        "PostCode": "WV8 1QD",
+                        "SchemeCity": "WOLVERHAMPTON",
+                        "SchemeDistrict": "CODSALL",
+                        "Street": "MOATBROOK LANE"
+                      },
+                      {
+                        "AddressName": " ",
+                        "DMA": "03107",
+                        "FunctionalLocation": "4475401",
+                        "GPS": "372177;292530",
+                        "HouseNumber": " ",
+                        "PostCode": "WV15 6AQ",
+                        "SchemeCity": "BRIDGNORTH",
+                        "SchemeDistrict": " ",
+                        "Street": "STOURBRIDGE ROAD"
+                      },
+                      {
+                        "AddressName": " ",
+                        "DMA": "03107",
+                        "FunctionalLocation": "4342707",
+                        "GPS": "371839;293438",
+                        "HouseNumber": "0000000051",
+                        "PostCode": "WV16 4BJ",
+                        "SchemeCity": "BRIDGNORTH",
+                        "SchemeDistrict": " ",
+                        "Street": "FRIARS STREET"
+                      },
+                      {
+                        "AddressName": " ",
+                        "DMA": "03107",
+                        "FunctionalLocation": "1898714",
+                        "GPS": "372069;292945",
+                        "HouseNumber": "0000000009",
+                        "PostCode": "WV15 6AG",
+                        "SchemeCity": "BRIDGNORTH",
+                        "SchemeDistrict": " ",
+                        "Street": "ST  JOHNS STREET"
+                      },
+                      {
+                        "AddressName": " ",
+                        "DMA": "04630",
+                        "FunctionalLocation": "4280108",
+                        "GPS": "415097;288173",
+                        "HouseNumber": "0000000020",
+                        "PostCode": "B34 7QX",
+                        "SchemeCity": "BIRMINGHAM",
+                        "SchemeDistrict": " ",
+                        "Street": "TANGLEWOOD CLOSE"
+                      },
+                      {
+                        "AddressName": " ",
+                        "DMA": "03005",
+                        "FunctionalLocation": "2787449",
+                        "GPS": "384222;303289",
+                        "HouseNumber": " ",
+                        "PostCode": "WV7 3AL",
+                        "SchemeCity": "WOLVERHAMPTON",
+                        "SchemeDistrict": "ALBRIGHTON",
+                        "Street": "OAKEN LAWN"
+                      },
+                      {
+                        "AddressName": " ",
+                        "DMA": "03005",
+                        "FunctionalLocation": "4731572",
+                        "GPS": "385370;304072",
+                        "HouseNumber": " ",
+                        "PostCode": "WV8 1QD",
+                        "SchemeCity": "WOLVERHAMPTON",
+                        "SchemeDistrict": "CODSALL",
+                        "Street": "MOATBROOK LANE"
+                      },
+                      {
+                        "AddressName": " ",
+                        "DMA": "03107",
+                        "FunctionalLocation": "2733934",
+                        "GPS": "372203;292406",
+                        "HouseNumber": "0000000008",
+                        "PostCode": "WV15 6BN",
+                        "SchemeCity": "BRIDGNORTH",
+                        "SchemeDistrict": " ",
+                        "Street": "ST  JAMES DRIVE"
+                      },
+                      {
+                        "AddressName": " ",
+                        "DMA": "03005",
+                        "FunctionalLocation": "2649514",
+                        "GPS": "384222;303316",
+                        "HouseNumber": " ",
+                        "PostCode": "WV7 3AL",
+                        "SchemeCity": "WOLVERHAMPTON",
+                        "SchemeDistrict": "ALBRIGHTON",
+                        "Street": "OAKEN LAWN"
+                      },
+                      {
+                        "AddressName": " ",
+                        "DMA": "03107",
+                        "FunctionalLocation": "1958729",
+                        "GPS": "372307;293610",
+                        "HouseNumber": "0000000027",
+                        "PostCode": "WV15 5AF",
+                        "SchemeCity": "BRIDGNORTH",
+                        "SchemeDistrict": " ",
+                        "Street": "MILL STREET"
+                      },
+                      {
+                        "AddressName": " ",
+                        "DMA": "03107",
+                        "FunctionalLocation": "2188626",
+                        "GPS": "372334;293807",
+                        "HouseNumber": "0000000029",
+                        "PostCode": "WV15 5NG",
+                        "SchemeCity": "BRIDGNORTH",
+                        "SchemeDistrict": " ",
+                        "Street": "TELFORD ROAD"
+                      },
+                      {
+                        "AddressName": " ",
+                        "DMA": "03005",
+                        "FunctionalLocation": "4265252",
+                        "GPS": "384178;303268",
+                        "HouseNumber": " ",
+                        "PostCode": "WV7 3AL",
+                        "SchemeCity": "WOLVERHAMPTON",
+                        "SchemeDistrict": "ALBRIGHTON",
+                        "Street": "OAKEN LAWN"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "runAfter": {}
+            }
+          },
+          "parameters": {
+            "$connections": {
+              "defaultValue": {},
+              "type": "Object"
+            }
+          },
+          "triggers": {
+            "manual": {
+              "type": "Request",
+              "kind": "Http",
+              "inputs": {
+                "schema": {
+                  "properties": {
+                    "PrefileID": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "method": "POST",
+                "relativePath": "/api/{value}"
+              }
+            }
+          },
+          "contentVersion": "1.0.0.0",
+          "outputs": {}
+        },
+        "parameters": {
+          "$connections": {
+            "value": {
+              "azureblob": {
+                "id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', parameters('logicAppLocation'), '/managedApis/', 'azureblob')]",
+                "connectionId": "[resourceId('Microsoft.Web/connections', parameters('azureblob_1_Connection_Name'))]",
+                "connectionName": "[parameters('azureblob_1_Connection_Name')]"
+              },
+              "sql": {
+                "id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', parameters('logicAppLocation'), '/managedApis/', 'sql')]",
+                "connectionId": "[resourceId('Microsoft.Web/connections', parameters('sql_1_Connection_Name'))]",
+                "connectionName": "[parameters('sql_1_Connection_Name')]"
+              }
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/connections', parameters('azureblob_1_Connection_Name'))]",
+        "[resourceId('Microsoft.Web/connections', parameters('sql_1_Connection_Name'))]"
+      ]
+    },
+    {
+      "type": "MICROSOFT.WEB/CONNECTIONS",
+      "apiVersion": "2018-07-01-preview",
+      "name": "[parameters('sql_1_Connection_Name')]",
+      "location": "[parameters('logicAppLocation')]",
+      "properties": {
+        "api": {
+          "id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', parameters('logicAppLocation'), '/managedApis/', 'sql')]"
+        },
+        "displayName": "[parameters('sql_1_Connection_DisplayName')]",
+        "parameterValues": {
+          "server": "[parameters('sql_1_server')]",
+          "database": "[parameters('sql_1_database')]",
+          "username": "[parameters('sql_1_username')]",
+          "password": "[parameters('sql_1_password')]",
+          "encryptConnection": "[parameters('sql_1_encryptConnection')]",
+          "privacySetting": "[parameters('sql_1_privacySetting')]",
+          "sqlConnectionString": "[parameters('sql_1_sqlConnectionString')]"
+        }
+      }
+    },
+    {
+      "type": "MICROSOFT.WEB/CONNECTIONS",
+      "apiVersion": "2018-07-01-preview",
+      "name": "[parameters('azureblob_1_Connection_Name')]",
+      "location": "[parameters('logicAppLocation')]",
+      "properties": {
+        "api": {
+          "id": "[concat(subscription().id, '/providers/Microsoft.Web/locations/', parameters('logicAppLocation'), '/managedApis/', 'azureblob')]"
+        },
+        "displayName": "[parameters('azureblob_1_Connection_DisplayName')]",
+        "parameterValues": {
+          "accountName": "[parameters('azureblob_1_accountName')]",
+          "accessKey": "[parameters('azureblob_1_accessKey')]",
+          "authType": "[parameters('azureblob_1_authType')]",
+          "privacySetting": "[parameters('azureblob_1_privacySetting')]"
+        }
+      }
+    }
+  ],
+  "outputs": {}
+}

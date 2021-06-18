@@ -1,0 +1,74 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "azureblob_1_accessKey": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/39145e23-d044-41c8-a83d-4bab22cc8f5d/resourceGroups/st-proactivemetering-preprod-neu-rg/providers/Microsoft.KeyVault/vaults/stproactivempreprodneukv"
+        },
+        "secretName": "stproactivempreprodstor1-key1"
+      }
+    },
+    "azureblob_1_accountName": {
+      "value": "stproactivempreprodstor1"
+    },
+    "azureblob_1_authType": {
+      "value": "anonymous"
+    },
+    "azureblob_1_Connection_DisplayName": {
+      "value": "stproactivempreprodstor1_Prefile"
+    },
+    "azureblob_1_Connection_Name": {
+      "value": "azureblob"
+    },
+    "azureblob_1_privacySetting": {
+      "value": "None"
+    },
+    "logicAppName": {
+      "value": "st-proactivemetering-preprod-neu-la-3-vs"
+    },
+    "sql_1_Connection_DisplayName": {
+      "value": "Get Requested Jobs"
+    },
+    "sql_1_Connection_Name": {
+      "value": "sql"
+    },
+    "sql_1_database": {
+      "value": "st-proactivemetering-preprod-sqldb"
+    },
+    "sql_1_encryptConnection": {
+     "value": false
+    },
+    "sql_1_password": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/39145e23-d044-41c8-a83d-4bab22cc8f5d/resourceGroups/st-proactivemetering-preprod-neu-rg/providers/Microsoft.KeyVault/vaults/stproactivempreprodneukv"
+        },
+        "secretName": "SA-user-password"
+      }
+    },
+    "sql_1_privacySetting": {
+           "value": "None"
+          },
+    "sql_1_server": {
+      "value": "st-proactivemetering-preprod-neu-sqlserver.database.windows.net"
+    },
+    "sql_1_username": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/39145e23-d044-41c8-a83d-4bab22cc8f5d/resourceGroups/st-proactivemetering-preprod-neu-rg/providers/Microsoft.KeyVault/vaults/stproactivempreprodneukv"
+        },
+        "secretName": "SA-user-name"
+      }
+    },
+    "sql_1_sqlConnectionString": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/39145e23-d044-41c8-a83d-4bab22cc8f5d/resourceGroups/st-proactivemetering-preprod-neu-rg/providers/Microsoft.KeyVault/vaults/stproactivempreprodneukv"
+        },
+        "secretName": "stproactivempreprodstor1-constring1"
+      }
+    }
+   }
+}

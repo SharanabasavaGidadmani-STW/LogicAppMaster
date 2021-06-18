@@ -1,0 +1,66 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "azureblob_1_accessKey": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/0b731124-849a-49c0-99a8-732f55740893/resourceGroups/st-proactivemetering-prod-neu-rg/providers/Microsoft.KeyVault/vaults/stproactivemprodneukv"
+        },
+        "secretName": "stproactivemprodstor1-key"
+      }
+    },
+    "azureblob_1_accountName": {
+      "value": "stproactivemprodstor1"
+    },
+    "azureblob_1_authType": {
+      "value": "anonymous"
+    },
+    "azureblob_1_Connection_DisplayName": {
+      "value": "stproactivemprodstor1_Prefile"
+    },
+    "azureblob_1_Connection_Name": {
+      "value": "azureblob"
+    },
+    "azureblob_1_privacySetting": {
+      "value": "None"
+    },
+    "logicAppName": {
+      "value": "st-proactivemetering-neu-la-3-vs"
+    },
+    "sql_1_Connection_DisplayName": {
+      "value": "Get Requested Jobs"
+    },
+    "sql_1_Connection_Name": {
+      "value": "sql-1"
+    },
+    "sql_1_database": {
+     "value": "st-proactivemetering-prod-sqldb"
+    },
+    "sql_1_encryptConnection": {
+     "value": true
+    },
+    "sql_1_password": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/0b731124-849a-49c0-99a8-732f55740893/resourceGroups/st-proactivemetering-prod-neu-rg/providers/Microsoft.KeyVault/vaults/stproactivemprodneukv"
+        },
+        "secretName": "SA-user-password"
+      }
+    },
+    "sql_1_privacySetting": {
+           "value": "None"
+          },
+    "sql_1_server": {
+     "value": "st-proactivemetering-prod-neu-sqlserver.database.windows.net"
+    },
+    "sql_1_username": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/0b731124-849a-49c0-99a8-732f55740893/resourceGroups/st-proactivemetering-prod-neu-rg/providers/Microsoft.KeyVault/vaults/stproactivemprodneukv"
+        },
+        "secretName": "SA-user-name"
+      }
+    }
+   }
+}
